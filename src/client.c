@@ -45,6 +45,9 @@ int main(int argc, char *argv[])
     int len, avg_len;
     int *vect = calloc(BUFSIZE, sizeof(int));
     int *avg_vect = calloc(BUFSIZE / M, sizeof(int));
+    clock_t start, end;
+    double time_used;
+    char msg[STRSIZE];
 
     if (argc != 3)
     {
@@ -69,9 +72,15 @@ int main(int argc, char *argv[])
     len = sock_rcv(sock_r, vect);
     avg_len = len / M;
     logwrite("Got data, calculating...");
+    start = clock();
     AVG(vect, avg_vect, len);
+    end = clock();
+    time_used = (double)(end - start) / CLOCKS_PER_SEC;
+    printf("Time used: %lf.\n", time_used);
     logwrite("Finished, sending...");
     sock_send(sock_r, avg_vect, avg_len);
+    sprintf(msg, "Time used: %lf. Total data size: %lf MB. M = %d", time_used, (double)len * sizeof(int) / 1024 / 1024, M);
+    sock_send_str(sock_r, msg);
     shutdown(sock_r, SHUT_WR);
     return 0;
 }

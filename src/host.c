@@ -60,21 +60,39 @@ void sock_closeall()
     logwrite("Listen-socket closed");
 }
 
+int openfile() {
+    int logfile;
+    char *logfilename;
+    time_t t;
+    char *timestr;
+    char logname[STRSIZE] = "logs/log";
+
+    time(&t);
+    timestr = ctime(&t);
+    logfilename = malloc(strlen(logname) + 3 + strlen(timestr) + 4 + 1);
+    strcpy(logfilename, logname);
+    strcat(logfilename, " - ");
+    strcat(logfilename, timestr);
+    strcat(logfilename, ".txt");
+    CHECK(logfile = creat(logfilename, 0666), -1, "Error while opening log file")
+    free(logfilename);
+    return logfile;
+}
+
 //------------------------------------------------------------------------------------------------------
 //------------------------------------------------------------------------------------------------------
 
 void handler_stop(int signum)
 {
     logwrite("SIGTERM received.");
-    //ending phase: delete all created stuff.
     sock_closeall(); //sockets
-    //closing log
-    logwrite("Server stopped. Closing the log...");
     exit(0);
 }
 
 int main(int argc, char *argv[])
 {
+    char msg[STRSIZE];
+    char tmp[STRSIZE];
     int *vect = calloc(BUFSIZE, sizeof(int));
     int *avg_vect = calloc(BUFSIZE, sizeof(int));
     int len, avg_len;
@@ -101,10 +119,23 @@ int main(int argc, char *argv[])
         for (int i = 0; i < len; ++i)
             vect[i] = i;
         sock_send(sock_r, vect, len);
-        //get responses until closed
+        //get responses
         avg_len = sock_rcv(sock_r, avg_vect);
+        sock_rcv_str(sock_r, msg);
+        // close the socket
         sock_fin(sock_r);
         sock_r = -1;
+        //send data to the file
+        logwrite("Saving data to the file...");
+        int f = openfile();
+        for (int i = 0; i < avg_len; ++i) {
+            //sprintf(tmp, "%.3f ", avg_vect[i]);
+            sprintf(tmp, "%d ", avg_vect[i]);
+            write(f, tmp, strlen(tmp));
+        }
+        write(f, "\n", 1);
+        write(f, msg, strlen(msg));
+        close(f);
     }
     return 0;
 }

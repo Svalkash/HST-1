@@ -16,6 +16,7 @@
 #include <arpa/inet.h>
 
 #define BUFSIZE 8388608 //32MB max
+#define STRSIZE 80
 #define MAXLISTEN 256
 
 #define CHECK(fun, errval, msg) \
@@ -44,9 +45,9 @@ int logwrite(const char *str)
     //write to log
     time(&t);
     timestr = ctime(&t);
-    printf(timestr);
+    printf("%s", timestr);
     printf(" | ");
-    printf(str);
+    printf("%s", str);
     printf("\n");
     return 1;
 }
@@ -99,7 +100,7 @@ int sock_rcv(int sock_r, int *msg)
     int rcv_sz;
 
     //receive message
-    rcv_sz = recv(sock_r, msg, BUFSIZE * sizeof(int), 0); //-1 so \0 will be conserved
+    rcv_sz = recv(sock_r, msg, BUFSIZE * sizeof(int), 0);
     if (rcv_sz == -1)
     {
         //CHECK_SPECIFIC("Error while receiving data from socket", EAGAIN)
@@ -116,6 +117,47 @@ int sock_rcv(int sock_r, int *msg)
     logwrite_int("Received from socket: ", sock_r);
     //logwrite(msg);
     logwrite_arr("Rcv:", msg, rcv_sz);
+    logwrite_int("size: ", rcv_sz);
+    return rcv_sz;
+}
+
+int sock_send_str(int sock_r, const char *msg)
+{
+    int ret;
+    //sanity check
+    if (sock_r < 0)
+    {
+        logwrite_int("ERROR: Tried to send message to closed socket:", sock_r);
+        return -1;
+    }
+    logwrite_int("Sending to socket ", sock_r);
+    logwrite(msg);
+    ret = send(sock_r, msg, strlen(msg), 0);
+    return ret;
+}
+
+int sock_rcv_str(int sock_r, char *msg)
+{
+    int rcv_sz;
+
+    //receive message
+    rcv_sz = recv(sock_r, msg, BUFSIZE - 1, 0); //-1 so \0 will be conserved
+    if (rcv_sz == -1)
+    {
+        //CHECK_SPECIFIC("Error while receiving data from socket", EAGAIN)
+        perror("");
+        return 0;
+    }
+    else if (rcv_sz == 0)
+    {
+        logwrite_int("Socket down: ", sock_r);
+        sock_fin(sock_r);
+        return -2;
+    }
+    msg[rcv_sz] = '\0';
+    logwrite_int("Received from socket: ", sock_r);
+    //logwrite(msg);
+    logwrite(msg);
     logwrite_int("size: ", rcv_sz);
     return rcv_sz;
 }
