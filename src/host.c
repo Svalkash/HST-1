@@ -76,6 +76,8 @@ void handler_stop(int signum)
 int main(int argc, char *argv[])
 {
     int *vect = calloc(BUFSIZE, sizeof(int));
+    int *avg_vect = calloc(BUFSIZE, sizeof(int));
+    int len, avg_len;
     logwrite("Before listen");
     if (argc != 3)
     {
@@ -83,7 +85,7 @@ int main(int argc, char *argv[])
         return -1;
     }
     //create vectors and vars
-    int len = atoi(argv[2]) / sizeof(int);
+    len = atoi(argv[2]) / sizeof(int);
     logwrite_int("Len in int: ", len);
     // int len = atoi(argv[2]) * 1024 * 1024 / sizeof(int);
     //  open connect socket
@@ -100,8 +102,7 @@ int main(int argc, char *argv[])
             vect[i] = i;
         sock_send(sock_r, vect, len);
         //get responses until closed
-        sock_rcv(sock_r, vect);
-        logwrite("closing?");
+        avg_len = sock_rcv(sock_r, avg_vect);
         sock_fin(sock_r);
         sock_r = -1;
     }
