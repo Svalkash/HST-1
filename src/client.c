@@ -1,12 +1,13 @@
 #include "lib.h"
 
-#define M 1024
+const uint64_t M = 1000;
 
-void AVG(const int *from, int *to, int N) {
-    for (int ti = 0; ti < N / M; ++ti)
+void AVG(const double *from, double *to, uint64_t N) {
+    //printf("N %ld, M %ld\n", N, M);
+    for (long long ti = 0; ti < N / M; ++ti)
     { // assuming N=M*x
-        long long sum = 0;
-        for (int fi = ti * M; fi < (ti + 1) * M; ++fi)
+        double sum = 0;
+        for (long long fi = ti * M; fi < (ti + 1) * M; ++fi)
             sum += from[fi];
         to[ti] = sum / M;
     }
@@ -42,12 +43,11 @@ int main(int argc, char *argv[])
 {    
     int ret;
     struct sockaddr_in sa_srv;
-    int len, avg_len;
-    int *vect = calloc(BUFSIZE, sizeof(int));
-    int *avg_vect = calloc(BUFSIZE / M, sizeof(int));
+    uint64_t len, avg_len;
+    double *vect, *avg_vect;
     clock_t start, end;
     double time_used;
-    char msg[STRSIZE];
+    char msg[BUFSIZE];
 
     if (argc != 3)
     {
@@ -69,8 +69,9 @@ int main(int argc, char *argv[])
     //check error <=0
     CHECK(connect(sock_r, (struct sockaddr *)&sa_srv, sizeof(sa_srv)), -1, "Error while connecting")
     //read the data
-    len = sock_rcv(sock_r, vect);
+    len = sock_rcv(sock_r, &vect);
     avg_len = len / M;
+    avg_vect = calloc(avg_len, sizeof(double));
     logwrite("Got data, calculating...");
     start = clock();
     AVG(vect, avg_vect, len);
@@ -79,8 +80,11 @@ int main(int argc, char *argv[])
     printf("Time used: %lf.\n", time_used);
     logwrite("Finished, sending...");
     sock_send(sock_r, avg_vect, avg_len);
-    sprintf(msg, "Time used: %lf. Total data size: %lf MB. M = %d", time_used, (double)len * sizeof(int) / 1024 / 1024, M);
+    sock_rcv_str(sock_r, msg); //get ACK. Stupid.
+    sprintf(msg, "Time used: %lf. Total data size: %lf MB. N = %ld, M = %ld", time_used, (double)len * sizeof(double) / 1024 / 1024, len, M);
     sock_send_str(sock_r, msg);
     shutdown(sock_r, SHUT_WR);
+    free(vect);
+    free(avg_vect);
     return 0;
 }

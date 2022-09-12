@@ -3,7 +3,7 @@ CFLAGS = -std=gnu99
 _DEPS = lib.h
 BUILD_DIR = .
 SRC_DIR = src
-DEPS = $(patsubst %,$(SRC_DIR)/%,$(_SDEPS))
+DEPS = $(patsubst %,$(SRC_DIR)/%,$(_DEPS))
 SERV = $(BUILD_DIR)/host.exe
 CLI = $(BUILD_DIR)/client.exe
 
@@ -24,7 +24,7 @@ $(BUILD_DIR)/client.exe: $(SRC_DIR)/client.c $(DEPS)
 ADDR = 127.0.0.1
 PORT = 12345
 
-SIZEMB = 16384
+SIZEMB = 1024
 
 cli:
 	./client.exe $(ADDR) $(PORT)

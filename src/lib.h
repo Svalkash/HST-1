@@ -15,8 +15,8 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 
-#define BUFSIZE 8388608 //32MB max
-#define STRSIZE 80
+#define BUFSIZE 1024
+#define PKTSIZE 128
 #define MAXLISTEN 256
 
 #define CHECK(fun, errval, msg) \
@@ -37,7 +37,7 @@
         }                           \
     }
 
-int logwrite(const char *str)
+void logwrite(const char *str)
 {
     time_t t;
     char *timestr;
@@ -49,24 +49,23 @@ int logwrite(const char *str)
     printf(" | ");
     printf("%s", str);
     printf("\n");
-    return 1;
 }
 
-int logwrite_int(const char *str, long num)
+void logwrite_int(const char *str, long num)
 {
     char outstr[1024];
     sprintf(outstr, "%s %ld", str, num);
     logwrite(outstr);
 }
 
-int logwrite_arr(const char *str, const int *arr, int size)
+void logwrite_arr(const char *str, const double *arr, uint64_t size)
 {
     char outstr[1024];
     char tmp[1024];
     strcpy(outstr, str);
-    for (int i = 0; i < size; ++i)
+    for (uint64_t i = 0; i < size; ++i)
     {
-        sprintf(tmp, " %d", arr[i]);
+        sprintf(tmp, " %lf", arr[i]);
         strcat(outstr, tmp);
     }
     logwrite(outstr);
@@ -80,9 +79,12 @@ void sock_fin(int sock)
     close(sock);
 }
 
-int sock_send(int sock_r, const int *msg, int len)
+int sock_send(int sock_r, const double *msg, uint64_t len)
 {
     int ret;
+    uint64_t total = 0;
+    const double *ptr = msg;
+    uint64_t cur_len;
     //sanity check
     if (sock_r < 0)
     {
@@ -90,17 +92,42 @@ int sock_send(int sock_r, const int *msg, int len)
         return -1;
     }
     logwrite_int("Sending to socket ", sock_r);
-    logwrite_arr("Sent:", msg, len);
-    ret = send(sock_r, msg, len * sizeof(int), 0);
+    send(sock_r, &len, sizeof(uint64_t), 0); //send length
+    while (total < len) {
+        cur_len = len - total > PKTSIZE ? PKTSIZE : len - total;
+        //logwrite_arr("Sent:", ptr, cur_len);
+        ret = send(sock_r, ptr, cur_len * sizeof(double), 0);
+        if (ret < 0) {
+            perror("");
+            return ret;
+        }
+        total += cur_len;
+        ptr += cur_len;
+    }
     return ret;
 }
 
-int sock_rcv(int sock_r, int *msg)
+int sock_rcv(int sock_r, double **msg)
 {
-    int rcv_sz;
+    uint64_t len;
+    uint64_t rcv_total = 0;
+    uint64_t rcv_sz;
 
-    //receive message
-    rcv_sz = recv(sock_r, msg, BUFSIZE * sizeof(int), 0);
+    //read length
+    rcv_sz = recv(sock_r, &len, sizeof(uint64_t), 0);
+    logwrite_int("Total length: ", len);
+    *msg = calloc(len, sizeof(double));
+    double *ptr = *msg;
+    // receive message
+    logwrite_int("Received from socket: ", sock_r);
+    while (rcv_total < len && rcv_sz > 0) {
+        rcv_sz = recv(sock_r, ptr, PKTSIZE * sizeof(double), 0);
+        rcv_sz /= sizeof(double);
+        logwrite_int("size: ", rcv_sz);
+        //logwrite_arr("Rcv:", ptr, rcv_sz);
+        rcv_total += rcv_sz;
+        ptr += rcv_sz; //shift pointer to the end
+    }
     if (rcv_sz == -1)
     {
         //CHECK_SPECIFIC("Error while receiving data from socket", EAGAIN)
@@ -113,12 +140,7 @@ int sock_rcv(int sock_r, int *msg)
         sock_fin(sock_r);
         return -2;
     }
-    rcv_sz /= sizeof(int);
-    logwrite_int("Received from socket: ", sock_r);
-    //logwrite(msg);
-    logwrite_arr("Rcv:", msg, rcv_sz);
-    logwrite_int("size: ", rcv_sz);
-    return rcv_sz;
+    return len;
 }
 
 int sock_send_str(int sock_r, const char *msg)
@@ -131,7 +153,7 @@ int sock_send_str(int sock_r, const char *msg)
         return -1;
     }
     logwrite_int("Sending to socket ", sock_r);
-    logwrite(msg);
+    //logwrite(msg);
     ret = send(sock_r, msg, strlen(msg), 0);
     return ret;
 }

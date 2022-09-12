@@ -65,7 +65,7 @@ int openfile() {
     char *logfilename;
     time_t t;
     char *timestr;
-    char logname[STRSIZE] = "logs/log";
+    char logname[BUFSIZE] = "logs/log";
 
     time(&t);
     timestr = ctime(&t);
@@ -91,21 +91,21 @@ void handler_stop(int signum)
 
 int main(int argc, char *argv[])
 {
-    char msg[STRSIZE];
-    char tmp[STRSIZE];
-    int *vect = calloc(BUFSIZE, sizeof(int));
-    int *avg_vect = calloc(BUFSIZE, sizeof(int));
-    int len, avg_len;
-    logwrite("Before listen");
+    char msg[BUFSIZE];
+    char tmp[BUFSIZE];
+    double *vect, *avg_vect;
+    uint64_t len, avg_len;
     if (argc != 3)
     {
         fprintf(stderr, "Usage: %s <port> <dataMB>\n", argv[0]);
         return -1;
     }
-    //create vectors and vars
-    len = atoi(argv[2]) / sizeof(int);
-    logwrite_int("Len in int: ", len);
-    // int len = atoi(argv[2]) * 1024 * 1024 / sizeof(int);
+    srand(time(NULL));
+    // create vectors and vars
+    // len = atoi(argv[2]) / sizeof(double);
+    len = atoi(argv[2]) * 1024 * 1024 / sizeof(double);
+    vect = calloc(len, sizeof(double));
+    logwrite_int("Len in double: ", len);
     //  open connect socket
     sock_l = sock_listen(atoi(argv[1]));
     //prepare interrupt handlers
@@ -116,11 +116,14 @@ int main(int argc, char *argv[])
         while (sock_r < 0)
             sock_accept(sock_l);
         //send the vector
-        for (int i = 0; i < len; ++i)
-            vect[i] = i;
+        for (uint64_t i = 0; i < len; ++i)
+            //vect[i] = i;
+            vect[i] = (double)(rand() % 1024);
+        logwrite("Ready to send");
         sock_send(sock_r, vect, len);
         //get responses
-        avg_len = sock_rcv(sock_r, avg_vect);
+        avg_len = sock_rcv(sock_r, &avg_vect); //get data
+        sock_send_str(sock_r, "ack"); //stupid, but functional
         sock_rcv_str(sock_r, msg);
         // close the socket
         sock_fin(sock_r);
@@ -128,14 +131,17 @@ int main(int argc, char *argv[])
         //send data to the file
         logwrite("Saving data to the file...");
         int f = openfile();
-        for (int i = 0; i < avg_len; ++i) {
-            //sprintf(tmp, "%.3f ", avg_vect[i]);
-            sprintf(tmp, "%d ", avg_vect[i]);
+        for (uint64_t i = 0; i < avg_len; ++i) {
+            sprintf(tmp, "%.3f ", avg_vect[i]);
+            sprintf(tmp, "%lf ", avg_vect[i]);
             write(f, tmp, strlen(tmp));
         }
         write(f, "\n", 1);
         write(f, msg, strlen(msg));
         close(f);
+        logwrite("Done.");
+        free(avg_vect);
     }
+    free(vect);
     return 0;
 }
