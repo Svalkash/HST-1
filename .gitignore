@@ -1,4 +1,3 @@
 *.exe
-logs/*
-old/*
-testfiles/*
+*/logs/*
+*/old/*
