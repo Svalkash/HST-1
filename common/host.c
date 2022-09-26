@@ -1,4 +1,4 @@
-#include "../../common/lib.h"
+#include "lib.h"
 
 int port;
 int port_changed = 0;

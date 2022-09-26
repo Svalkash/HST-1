@@ -13,7 +13,7 @@ CLI = $(BUILD_DIR)/client.exe
 
 all: $(CLI) $(SERV)
 
-$(BUILD_DIR)/host.exe: $(SRC_DIR)/host.c $(DEPS)
+$(BUILD_DIR)/host.exe: $(LIB_DIR)/host.c $(DEPS)
 	$(CC) $(CFLAGS) $< -o $@
 
 $(BUILD_DIR)/client.exe: $(SRC_DIR)/client.c $(DEPS)
