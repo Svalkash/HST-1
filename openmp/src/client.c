@@ -1,4 +1,4 @@
-#include "lib.h"
+#include "../../common/lib.h"
 #include "omp.h"
 
 const uint64_t M = 8192;

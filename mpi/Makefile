@@ -4,7 +4,8 @@ CFLAGS = -std=gnu99
 _DEPS = lib.h
 BUILD_DIR = .
 SRC_DIR = src
-DEPS = $(patsubst %,$(SRC_DIR)/%,$(_DEPS))
+LIB_DIR = ../common
+DEPS = $(patsubst %,$(LIB_DIR)/%,$(_DEPS))
 SERV = $(BUILD_DIR)/host.exe
 CLI = $(BUILD_DIR)/client.exe
 
@@ -21,16 +22,16 @@ $(BUILD_DIR)/client.exe: $(SRC_DIR)/client.c $(DEPS)
 #---------------------------------------------------------------
 
 ADDR = 127.0.0.1
-PORT = 12345
+PORT = 12346
 
-SIZEMB = 1024
+SIZEMB = 256
 
 MPISLOTS = 4
 
 cli:
-	mpirun $(ADDR) $(PORT)
+	mpirun -n $(MPISLOTS) ./client.exe $(ADDR) $(PORT)
 host:
-	mkdir logs
+	mkdir -p logs
 	./host.exe $(PORT) $(SIZEMB)
 
 

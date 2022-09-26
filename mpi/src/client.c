@@ -1,4 +1,4 @@
-#include "lib.h"
+#include "../../common/lib.h"
 #include "mpi.h"
 
 const uint64_t M = 8192; //N=xM ALWAYS!
@@ -45,13 +45,12 @@ int main(int argc, char *argv[])
     struct sockaddr_in sa_srv;
     uint64_t avg_len;
     double *vect, *avg_vect;
-    clock_t start, end;
+    double start, end; // timer
     double time_used;
     char msg[BUFSIZE];
 
     //process data
     const int root = 0;
-    double start, finish; // timer
     int my_rank; // My process rank
     int num_procs; //Number of processes
     //similar data
@@ -63,7 +62,7 @@ int main(int argc, char *argv[])
     MPI_Comm_size(MPI_COMM_WORLD,&num_procs);
 
     //Step 1: root gets data and sends size OR error response, everyone waits.
-    if (rank == root)
+    if (my_rank == root)
     {
         if (argc != 3)
         {
@@ -99,25 +98,29 @@ int main(int argc, char *argv[])
         start = MPI_Wtime(); //start timing
         //send size to people
         MPI_Bcast(&len, 1, MPI_UNSIGNED_LONG, root, MPI_COMM_WORLD);
+        //logwrite("Broadcasting my trash...");
     }
     else
     {
         //get size from root
         MPI_Bcast(&len, 1, MPI_UNSIGNED_LONG, root, MPI_COMM_WORLD);
+        //logwrite("Broadcasting NOT my trash...");
         if (len == 0)
             return -1;
     }
 
     //Step 2: init sizes and send data
     //Количество данных для каждого процесса
-    uint64_t blocks_per_process = (N / M) / num_procs; //items per process (rounded down!)
-    uint64_t extra_blocks = (N / M) % num_procs; //extra items to count
+    uint64_t blocks_per_process = (len / M) / num_procs; //items per process (rounded down!)
+    uint64_t extra_blocks = (len / M) % num_procs; //extra items to count
     //Local process data
     uint64_t local_blocks = my_rank < extra_blocks ? blocks_per_process + 1 : blocks_per_process;
     //Send stuff
-    if (rank == root) {
+    if (my_rank == root) {
+        //logwrite("Sending my trash...");
         //send to others
         for (int i = 1; i < num_procs; ++i) {
+        //logwrite_int("Sending my trash to: ", i);
             if (i < extra_blocks)
                 MPI_Send(vect + (blocks_per_process + 1) * M * i, (blocks_per_process + 1) * M, MPI_DOUBLE, i, 0, MPI_COMM_WORLD);
             else
@@ -127,24 +130,28 @@ int main(int argc, char *argv[])
     }
     else
     {
+        //logwrite("Getting my trash...");
         //allocate
         vect = (double *)malloc(local_blocks * M * sizeof(double));
         avg_vect = (double *)malloc(local_blocks * sizeof(double));
         //get data
         MPI_Recv(vect, local_blocks * M, MPI_DOUBLE, root, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        //logwrite_int("Received my trash: ", my_rank);
     }
 
     //Step 3: calculate local data. For root - only starting part!
+    //logwrite("Calcing my trash...");
     AVG(vect, avg_vect, local_blocks * M);
 
     //Step 4: gather and send back
-    if (rank == root) {
+    if (my_rank == root) {
+        //logwrite("Waiting my trash...");
         //get from each
         for (int i = 1; i < num_procs; ++i) {
             if (i < extra_blocks)
-                MPI_Recv(avg_vect + (blocks_per_process + 1) * i, (blocks_per_process + 1), MPI_DOUBLE, i, 1, MPI_COMM_WORLD);
+                MPI_Recv(avg_vect + (blocks_per_process + 1) * i, (blocks_per_process + 1), MPI_DOUBLE, i, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
             else
-                MPI_Recv(avg_vect + blocks_per_process * i + extra_blocks, blocks_per_process, MPI_DOUBLE, i, 1, MPI_COMM_WORLD);
+                MPI_Recv(avg_vect + blocks_per_process * i + extra_blocks, blocks_per_process, MPI_DOUBLE, i, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         }
         end = MPI_Wtime(); //stop timing
         time_used = end - start;
@@ -159,11 +166,14 @@ int main(int argc, char *argv[])
     }
     else
     {
-        MPI_Send(avg_vect, local_blocks, MPI_DOUBLE, root, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        //logwrite("Sendingback my trash...");
+        MPI_Send(avg_vect, local_blocks, MPI_DOUBLE, root, 1, MPI_COMM_WORLD);
     }
+    //logwrite_int("Done: ", my_rank);
 
     //Step 5: free memory and return
     free(vect);
     free(avg_vect);
+    MPI_Finalize();//Конец
     return 0;
 }

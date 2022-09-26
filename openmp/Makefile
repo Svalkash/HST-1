@@ -4,7 +4,8 @@ HFLAGS = -std=gnu99
 _DEPS = lib.h
 BUILD_DIR = .
 SRC_DIR = src
-DEPS = $(patsubst %,$(SRC_DIR)/%,$(_DEPS))
+LIB_DIR = ../common
+DEPS = $(patsubst %,$(LIB_DIR)/%,$(_DEPS))
 SERV = $(BUILD_DIR)/host.exe
 CLI = $(BUILD_DIR)/client.exe
 
@@ -28,7 +29,7 @@ SIZEMB = 1024
 cli:
 	./client.exe $(ADDR) $(PORT)
 host:
-	mkdir logs
+	mkdir -p logs
 	./host.exe $(PORT) $(SIZEMB)
 
 
