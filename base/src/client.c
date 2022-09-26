@@ -1,6 +1,6 @@
 #include "lib.h"
 
-const uint64_t M = 1000;
+const uint64_t M = 8192;
 
 void AVG(const double *from, double *to, uint64_t N) {
     //printf("N %ld, M %ld\n", N, M);

@@ -123,7 +123,7 @@ int sock_rcv(int sock_r, double **msg)
     while (rcv_total < len && rcv_sz > 0) {
         rcv_sz = recv(sock_r, ptr, PKTSIZE * sizeof(double), 0);
         rcv_sz /= sizeof(double);
-        logwrite_int("size: ", rcv_sz);
+        //logwrite_int("size: ", rcv_sz);
         //logwrite_arr("Rcv:", ptr, rcv_sz);
         rcv_total += rcv_sz;
         ptr += rcv_sz; //shift pointer to the end

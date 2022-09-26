@@ -12,11 +12,9 @@ CLI = $(BUILD_DIR)/client.exe
 all: $(CLI) $(SERV)
 
 $(BUILD_DIR)/host.exe: $(SRC_DIR)/host.c $(DEPS)
-	mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) $< -o $@
 
 $(BUILD_DIR)/client.exe: $(SRC_DIR)/client.c $(DEPS)
-	mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) $< -o $@
 
 #---------------------------------------------------------------
@@ -24,11 +22,12 @@ $(BUILD_DIR)/client.exe: $(SRC_DIR)/client.c $(DEPS)
 ADDR = 127.0.0.1
 PORT = 12345
 
-SIZEMB = 256
+SIZEMB = 1024
 
 cli:
 	./client.exe $(ADDR) $(PORT)
 host:
+	mkdir logs
 	./host.exe $(PORT) $(SIZEMB)
 
 

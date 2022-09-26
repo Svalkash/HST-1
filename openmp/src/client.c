@@ -1,14 +1,11 @@
 #include "lib.h"
 #include "omp.h"
 
-#define THR 4
-
-const uint64_t M = 1000;
+const uint64_t M = 8192;
 
 void AVG(const double *from, double *to, uint64_t N) {
     //printf("N %ld, M %ld\n", N, M);
     double sum = 0;
-    omp_set_num_threads(THR);
     #pragma omp parallel private(sum)
     {
         #pragma omp for
@@ -54,7 +51,7 @@ int main(int argc, char *argv[])
     struct sockaddr_in sa_srv;
     uint64_t len, avg_len;
     double *vect, *avg_vect;
-    clock_t start, end;
+    double start, end;
     double time_used;
     char msg[BUFSIZE];
 
@@ -82,10 +79,10 @@ int main(int argc, char *argv[])
     avg_len = len / M;
     avg_vect = calloc(avg_len, sizeof(double));
     logwrite("Got data, calculating...");
-    start = clock();
+    start = omp_get_wtime();
     AVG(vect, avg_vect, len);
-    end = clock();
-    time_used = (double)(end - start) / CLOCKS_PER_SEC;
+    end = omp_get_wtime();
+    time_used = end - start;
     printf("Time used: %lf.\n", time_used);
     logwrite("Finished, sending...");
     sock_send(sock_r, avg_vect, avg_len);
