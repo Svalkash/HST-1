@@ -17,6 +17,7 @@ $(BUILD_DIR)/host.exe: $(LIB_DIR)/host.c $(DEPS)
 	$(CC) $(CFLAGS) $< -o $@
 
 $(BUILD_DIR)/client.exe: $(SRC_DIR)/client.c $(DEPS)
+	export PATH=${PATH}:/usr/lib64/openmpi/bin:/usr/lib64/mpich-3.2/bin
 	$(MPICC) $(CFLAGS) $< -o $@
 
 #---------------------------------------------------------------
@@ -26,10 +27,11 @@ PORT = 12346
 
 SIZEMB = 256
 
-MPISLOTS = 4
+MPISLOTS = 2
 
 cli:
-	mpirun -n $(MPISLOTS) ./client.exe $(ADDR) $(PORT)
+	export PATH=${PATH}:/usr/lib64/openmpi/bin:/usr/lib64/mpich-3.2/bin
+	mpiexec --allow-run-as-root -n $(MPISLOTS) ./client.exe $(ADDR) $(PORT)
 host:
 	mkdir -p logs
 	./host.exe $(PORT) $(SIZEMB)
