@@ -3,7 +3,7 @@
 const uint64_t M = 8192;
 
 __global__ void AVG(const double *from, double *to, uint64_t N) {
-    int tid = (gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
     int step = gridDim.x * blockDim.x;
     //printf("N %ld, M %ld\n", N, M);
     for (long long ti = tid; ti < N / M; ti += step)
@@ -80,9 +80,10 @@ int main(int argc, char *argv[])
     logwrite("Got data, calculating...");
     start = clock();
     // Executing kernel 
-    int block_size = 256;
-    int grid_size = 1;
+    int block_size = 1024;
+    int grid_size = (avg_len + block_size) / block_size;
     AVG<<<grid_size,block_size>>>(cu_vect, cu_avg_vect, len);
+    cudaDeviceSynchronize();
     // Transfer data back to host memory
     cudaMemcpy(avg_vect, cu_avg_vect, sizeof(double) * avg_len, cudaMemcpyDeviceToHost);
 
