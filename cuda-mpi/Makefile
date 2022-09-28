@@ -1,34 +1,40 @@
 CC = gcc
+MPICXX = mpicxx
 CUC = nvcc -ccbin g++
-CFLAGS = -std=gnu99
 CUFLAGS = -m64 -gencode arch=compute_35,code=sm_35 -gencode arch=compute_37,code=sm_37 -gencode arch=compute_50,code=sm_50 -gencode arch=compute_52,code=sm_52 -gencode arch=compute_60,code=sm_60 -gencode arch=compute_61,code=sm_61 -gencode arch=compute_70,code=sm_70 -gencode arch=compute_75,code=sm_75 -gencode arch=compute_80,code=sm_80 -gencode arch=compute_86,code=sm_86 -gencode arch=compute_86,code=compute_86
+LDFLAGS = -L /usr/local/cuda/lib64 -lcudart
 _DEPS = lib.h
-BUILD_DIR = .
 SRC_DIR = src
 LIB_DIR = ../common
 DEPS = $(patsubst %,$(LIB_DIR)/%,$(_DEPS))
-HOST = $(BUILD_DIR)/host.exe
-CLI = $(BUILD_DIR)/client.exe
 
 .PHONY: all cli host clean
 
-all: $(CLI) $(HOST)
+all: host.exe client.exe
 
-$(HOST): $(LIB_DIR)/host.c $(DEPS)
-	$(CC) $(CFLAGS) $< -o $@
+host.exe: $(LIB_DIR)/host.c $(DEPS)
+	$(CC) $< -o $@
 
-$(CLI): $(SRC_DIR)/client.cu $(DEPS)
-	$(CUC) $(CUFLAGS) $< -o $@
+client_mpi.o: src/client_mpi.cpp $(DEPS) src/client_cuda.hpp
+#	export PATH=${PATH}:/usr/lib64/openmpi/bin:/usr/lib64/mpich-3.2/bin
+	$(MPICXX) -o $@ -c $<
+client_cuda.o: src/client_cuda.cu src/client_cuda.hpp
+	$(CUC) $(CUFLAGS) -o $@ -c $<
+client.exe: client_mpi.o client_cuda.o
+	$(MPICXX) $(LDFLAGS) $^ -o $@
 
 #---------------------------------------------------------------
 
 ADDR = 127.0.0.1
 PORT = 12345
 
-SIZEMB = 512
+SIZEMB = 1024
+
+MPISLOTS = 2
 
 cli:
 	./client.exe $(ADDR) $(PORT)
+
 host:
 	mkdir -p logs
 	./host.exe $(PORT) $(SIZEMB)
@@ -37,7 +43,7 @@ host:
 #---------------------------------------------------------------
 
 clean:
-	rm -rf $(BUILD_DIR)/*.exe
+	rm -rf client_mpi.o client_cuda.o client.exe host.exe
 	rm -f logs/*
 
 #---------------------------------------------------------------

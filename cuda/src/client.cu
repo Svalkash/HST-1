@@ -75,10 +75,10 @@ int main(int argc, char *argv[])
     // Allocate device memory
     cudaMalloc((void**)&cu_vect, sizeof(double) * len);
     cudaMalloc((void**)&cu_avg_vect, sizeof(double) * avg_len);
+    start = clock();
     // Transfer data from host to device memory
     cudaMemcpy(cu_vect, vect, sizeof(double) * len, cudaMemcpyHostToDevice);
     logwrite("Got data, calculating...");
-    start = clock();
     // Executing kernel 
     int block_size = 1024;
     int grid_size = (avg_len + block_size) / block_size;
