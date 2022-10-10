@@ -25,7 +25,7 @@ $(BUILD_DIR)/client.exe: $(SRC_DIR)/client.c $(DEPS)
 ADDR = 127.0.0.1
 PORT = 12346
 
-SIZEMB = 256
+SIZEMB = 64
 
 MPISLOTS = 2
 

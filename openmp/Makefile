@@ -22,9 +22,9 @@ $(BUILD_DIR)/client.exe: $(SRC_DIR)/client.c $(DEPS)
 #---------------------------------------------------------------
 
 ADDR = 127.0.0.1
-PORT = 12345
+PORT = 12346
 
-SIZEMB = 1024
+SIZEMB = 128
 
 cli:
 	./client.exe $(ADDR) $(PORT)
